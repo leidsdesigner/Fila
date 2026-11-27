@@ -116,7 +116,11 @@ function aviso(){
   return '<div class="note"><b>Fila só para:</b> ' + SERVICOS_FILA.map(esc).join(', ') + '.<br><b>Por agendamento no WhatsApp:</b> ' + esc(SERVICOS_AGENDA) + '.<br>Com horário marcado ou quer agendar? <a href="https://wa.me/' + WHATSAPP + '">Fale com a Leidi no WhatsApp</a>.</div>';
 }
 function parar(){ if (timer) { clearInterval(timer); timer = null; } }
-function agendar(fn){ parar(); fn(); timer = setInterval(fn, POLL_MS); }var servico = SERVICOS_FILA[0];
+function agendar(fn){ parar(); fn(); timer = setInterval(fn, POLL_MS); }
+
+/* ---------- cliente: pegar senha ---------- */
+function telaPegar(){
+  parar();var servico = SERVICOS_FILA[0];
   $app.innerHTML = '<h1>Pegue sua senha</h1><p class="lead">Atendimento por ordem de chegada.<br>Chegou sem hora marcada? Pegue sua senha aqui e acompanhe sua vez pelo celular.</p>' + aviso() +
     '<h2>Qual serviço você quer?</h2><div class="chips" id="chips"></div>' +
     '<div class="row"><button class="btn" id="pegar">Pegar minha senha</button></div><p class="err" id="erro"></p>' +
@@ -163,7 +167,7 @@ function telaStatus(n){
       var st = document.getElementById('st'), sub = document.getElementById('sub');
       if (!meu) { st.textContent = 'Senha não encontrada'; sub.textContent = 'Essa senha não existe na fila de hoje. Confira o número ou pegue uma nova.'; }
       else if (meu.st === 'atual') { st.textContent = 'É a sua vez!'; sub.textContent = 'Pode vir. Você está sendo chamada agora.'; }
-      else if (meu.st === 'atendida') { st.textContent = 'Já atendida'; sub.textContent = 'Sua senha já foi chamada hoje.'; }else if (meu.st === 'removida') { st.textContent = 'Senha cancelada'; sub.textContent = 'Essa senha saiu da fila. Fale com a Leidi se foi engano.'; }
+      else if (meu.st === 'atendida') { st.textContent = 'Já atendida'; sub.textContent = 'Sua senha já foi chamada hoje.'; }}else if (meu.st === 'removida') { st.textContent = 'Senha cancelada'; sub.textContent = 'Essa senha saiu da fila. Fale com a Leidi se foi engano.'; }
       else {
         var antes = d.tickets.filter(function(t){ return t.n < n && t.st === 'espera'; }).length;
         st.textContent = antes === 0 ? 'Você é a próxima' : 'Faltam ' + antes + ' na sua frente';
@@ -245,7 +249,3 @@ render();
       var esp = d.tickets.filter(function(t){ return t.st === 'espera'; });
       var at = d.tickets.filter(function(t){ return t.st === 'atual'; })[0];
       document.getElementById('cont').textContent = esp.length + ' esperando';
-
-/* ---------- cliente: pegar senha ---------- */
-function telaPegar(){
-  parar();
