@@ -55,10 +55,10 @@ footer a{color:var(--soft)}
 // Troque o texto abaixo por qualquer sequencia longa de letras/numeros sem espaco. E o "nome secreto" da fila.
 var SEGREDO = '1895e8f211178125';// PIN da dona: veja o passo a passo (abra o site com #/gerar no final, digite o PIN e cole o resultado aqui).
 // Enquanto estiver vazio, o painel da dona fica trancado.
-var PIN_HASH = '';
+var PIN_HASH = 'd19a31ae218a297ac265404bb04a56e7b61135cc1c5aaaac44db6fb0194fec09';
 var WHATSAPP = '5585985308284';
 var SERVICOS_FILA = ['Design personalizado', 'Design com henna', 'Buço', 'Spa labial'];
-var SERVICOS_AGENDA = 'microblading, fio a fio, microlabial, brow lamination, epilação facial, spa das sobrancelhas e hidra gloss';
+var SERVICOS_AGENDA = 'microblading (fio a fio), microlabial, brow lamination, epilação facial, spa das sobrancelhas e hidra gloss';
 var NTFY = 'https://ntfy.sh';
 var POLL_MS = 15000;
 /* ===== FIM DA CONFIGURACAO ===== */
@@ -116,12 +116,8 @@ function aviso(){
   return '<div class="note"><b>Fila só para:</b> ' + SERVICOS_FILA.map(esc).join(', ') + '.<br><b>Por agendamento no WhatsApp:</b> ' + esc(SERVICOS_AGENDA) + '.<br>Com horário marcado ou quer agendar? <a href="https://wa.me/' + WHATSAPP + '">Fale com a Leidi no WhatsApp</a>.</div>';
 }
 function parar(){ if (timer) { clearInterval(timer); timer = null; } }
-function agendar(fn){ parar(); fn(); timer = setInterval(fn, POLL_MS); }
-
-/* ---------- cliente: pegar senha ---------- */
-function telaPegar(){
-  parar();
-  var servico = SERVICOS_FILA[0];$app.innerHTML = '<h1>Pegue sua senha</h1><p class="lead">Atendimento por ordem de chegada.<br>Chegou sem hora marcada? Pegue sua senha aqui e acompanhe sua vez pelo celular.</p>' + aviso() +
+function agendar(fn){ parar(); fn(); timer = setInterval(fn, POLL_MS); }var servico = SERVICOS_FILA[0];
+  $app.innerHTML = '<h1>Pegue sua senha</h1><p class="lead">Atendimento por ordem de chegada.<br>Chegou sem hora marcada? Pegue sua senha aqui e acompanhe sua vez pelo celular.</p>' + aviso() +
     '<h2>Qual serviço você quer?</h2><div class="chips" id="chips"></div>' +
     '<div class="row"><button class="btn" id="pegar">Pegar minha senha</button></div><p class="err" id="erro"></p>' +
     '<p class="small">Aperte uma vez só. Depois de pegar, tire um print da tela com o seu número.</p>' +
@@ -158,6 +154,7 @@ function telaPegar(){
 function telaStatus(n){
   $app.innerHTML = '<h1>Sua senha</h1><div class="big">' + pad(n) + '</div><div class="status" id="st">Carregando...</div><p class="lead" id="sub"></p>' +
     '<div class="note"><b>Guarde seu número.</b> Tire um print desta tela. Esta página lembra a sua senha neste celular e atualiza sozinha a cada 15 segundos, é só deixar aberta.</div>' +
+    '<div class="note"><b>Tolerância de 5 minutos.</b> Se não estiver aqui quando for sua vez, a próxima cliente é chamada, e você passa para o final da fila.</div>' +
     '<p class="small" id="upd"></p><div class="row"><button class="btn sec small" id="atu">Atualizar agora</button><button class="btn sec small" id="outra">Pegar outra senha</button></div>' + aviso();
   async function atualizar(){
     try {
@@ -166,10 +163,10 @@ function telaStatus(n){
       var st = document.getElementById('st'), sub = document.getElementById('sub');
       if (!meu) { st.textContent = 'Senha não encontrada'; sub.textContent = 'Essa senha não existe na fila de hoje. Confira o número ou pegue uma nova.'; }
       else if (meu.st === 'atual') { st.textContent = 'É a sua vez!'; sub.textContent = 'Pode vir. Você está sendo chamada agora.'; }
-      else if (meu.st === 'atendida') { st.textContent = 'Já atendida'; sub.textContent = 'Sua senha já foi chamada hoje.'; }
-      else if (meu.st === 'removida') { st.textContent = 'Senha cancelada'; sub.textContent = 'Essa senha saiu da fila. Fale com a Leidi se foi engano.'; }
+      else if (meu.st === 'atendida') { st.textContent = 'Já atendida'; sub.textContent = 'Sua senha já foi chamada hoje.'; }else if (meu.st === 'removida') { st.textContent = 'Senha cancelada'; sub.textContent = 'Essa senha saiu da fila. Fale com a Leidi se foi engano.'; }
       else {
-        var antes = d.tickets.filter(function(t){ return t.n < n && t.st === 'espera'; }).length;st.textContent = antes === 0 ? 'Você é a próxima' : 'Faltam ' + antes + ' na sua frente';
+        var antes = d.tickets.filter(function(t){ return t.n < n && t.st === 'espera'; }).length;
+        st.textContent = antes === 0 ? 'Você é a próxima' : 'Faltam ' + antes + ' na sua frente';
         sub.textContent = d.atual ? 'Vez agora: senha ' + pad(d.atual) + '.' : 'Ainda não começou a chamar. Fique por perto.';
       }
       document.getElementById('upd').textContent = 'Atualizado às ' + hhmm(new Date()) + '.';
@@ -204,15 +201,8 @@ function telaDona(){
     '<div class="row"><button class="btn" id="prox">Chamar próxima</button><button class="btn sec" id="fim">Terminei o atendimento</button></div><p class="err" id="msg"></p>' +
     '<h2>Na fila</h2><div id="lista"></div><p class="small" id="upd"></p>' +
     '<div class="row"><button class="btn sec small" id="atu">Atualizar agora</button><button class="btn sec small" id="sair">Sair</button></div>' +
-    '<div class="note">A fila guarda só números e o serviço, sem nomes. A fila zera sozinha a cada dia.</div>';
-  var ocupado = false;
-  async function atualizar(){
-    try {
-      var d = derivar(await lerLog());
-      var esp = d.tickets.filter(function(t){ return t.st === 'espera'; });
-      var at = d.tickets.filter(function(t){ return t.st === 'atual'; })[0];
-      document.getElementById('cont').textContent = esp.length + ' esperando';
-      document.getElementById('agora').innerHTML = at ? '<b style="color:var(--g1);font-size:20px">Senha ' + pad(at.n) + '</b> · ' + esc(at.s) : 'Ninguém sendo atendida agora.';document.getElementById('lista').innerHTML = esp.length ? esp.map(function(t, i){ return '<div class="item"><div><b>Senha ' + pad(t.n) + '</b><br><span class="small">' + esc(t.s) + ' · ' + (i === 0 ? 'é a próxima' : i + ' na frente') + '</span></div><button class="btn sec small" data-x="' + t.n + '">Tirar da fila</button></div>'; }).join('') : '<p class="small">Fila vazia. ' + d.total + ' senha(s) hoje.</p>';
+    '<div class="note">A fila guarda só números e o serviço, sem nomes. A fila zera sozinha a cada dia.</div>';document.getElementById('agora').innerHTML = at ? '<b style="color:var(--g1);font-size:20px">Senha ' + pad(at.n) + '</b> · ' + esc(at.s) : 'Ninguém sendo atendida agora.';
+      document.getElementById('lista').innerHTML = esp.length ? esp.map(function(t, i){ return '<div class="item"><div><b>Senha ' + pad(t.n) + '</b><br><span class="small">' + esc(t.s) + ' · ' + (i === 0 ? 'é a próxima' : i + ' na frente') + '</span></div><button class="btn sec small" data-x="' + t.n + '">Tirar da fila</button></div>'; }).join('') : '<p class="small">Fila vazia. ' + d.total + ' senha(s) hoje.</p>';
       document.getElementById('upd').textContent = 'Atualizado às ' + hhmm(new Date()) + '. Atualiza sozinho a cada 15 segundos.';
     } catch (e) { document.getElementById('upd').textContent = 'Sem conexão com a fila. Vou tentar de novo.'; }
   }
@@ -248,3 +238,14 @@ render();
 </script>
 </body>
 </html>
+  var ocupado = false;
+  async function atualizar(){
+    try {
+      var d = derivar(await lerLog());
+      var esp = d.tickets.filter(function(t){ return t.st === 'espera'; });
+      var at = d.tickets.filter(function(t){ return t.st === 'atual'; })[0];
+      document.getElementById('cont').textContent = esp.length + ' esperando';
+
+/* ---------- cliente: pegar senha ---------- */
+function telaPegar(){
+  parar();
