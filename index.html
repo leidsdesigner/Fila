@@ -47,7 +47,7 @@ footer a{color:var(--soft)}
 .ok{color:var(--g1);font-size:17px;margin:8px 0}
 .toggle-on{background:linear-gradient(100deg,var(--g3),var(--g2));color:#1a1210}
 .car-track{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:6px 2px 10px;scroll-behavior:smooth}
-.car-track::-webkit-scrollbar{display:none} .car-card{flex:0 0 80%;scroll-snap-align:center;border:1px solid var(--g3);border-radius:18px;padding:30px 16px 26px;text-align:center;background:radial-gradient(120% 90% at 50% 0%,#241a1b 0%,#120e0f 70%);box-shadow:inset 0 0 0 4px #0f0d0e,inset 0 0 0 5px #4a3231;min-height:190px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
+.car-track::-webkit-scrollbar{display:none}.car-card{flex:0 0 80%;scroll-snap-align:center;border:1px solid var(--g3);border-radius:18px;padding:30px 16px 26px;text-align:center;background:radial-gradient(120% 90% at 50% 0%,#241a1b 0%,#120e0f 70%);box-shadow:inset 0 0 0 4px #0f0d0e,inset 0 0 0 5px #4a3231;min-height:190px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
 .car-star{color:var(--g2);font-size:13px;letter-spacing:6px}
 .car-nome{font-family:'Playfair Display',Georgia,serif;font-style:italic;font-size:23px;line-height:1.2;color:var(--g1)}
 .car-linha{width:46px;height:1px;background:linear-gradient(90deg,transparent,var(--g2),transparent);margin:6px 0}
@@ -103,8 +103,8 @@ function b64d(t){ var s = atob(t), b = new Uint8Array(s.length); for (var i = 0;
 function msgAssinada(topico, q, k, n){ return topico + '|' + q + '|' + k + '|' + (n === undefined ? '' : n); }
 var _pub = null, _vc = {};
 function cfg(){ try { return CHAVE_DONA ? JSON.parse(CHAVE_DONA) : null; } catch (e) { return null; } }
-async function chavePublica(){ if (_pub) return _pub; var c = cfg(); if (!c) return null; _pub = await crypto.subtle.importKey('jwk', c.pub, {name: 'ECDSA', namedCurve: 'P-256'}, false, ['verify']); return _pub; }
-async function verificar(e, topico){var key = e.g + '|' + msgAssinada(topico, e.q, e.k, e.n);
+async function chavePublica(){ if (_pub) return _pub; var c = cfg(); if (!c) return null; _pub = await crypto.subtle.importKey('jwk', c.pub, {name: 'ECDSA', namedCurve: 'P-256'}, false, ['verify']); return _pub; }async function verificar(e, topico){
+var key = e.g + '|' + msgAssinada(topico, e.q, e.k, e.n);
 if (_vc[key] !== undefined) return _vc[key];
 var ok = false;
 try { var pk = await chavePublica(); if (pk && typeof e.g === 'string') ok = await crypto.subtle.verify({name: 'ECDSA', hash: 'SHA-256'}, pk, b64d(e.g), new TextEncoder().encode(msgAssinada(topico, e.q, e.k, e.n))); } catch (x) {}
@@ -172,8 +172,8 @@ s.es.onopen = function(){ s.ok = true; s.avisar(); };
 s.es.onerror = function(){ s.ok = false; s.avisar(); };
 } catch (e) {}
 s.pollTimer = setInterval(function(){ s.ler(); }, POLL_MS);
-},
-parar: function(){ if (this.es) { this.es.close(); this.es = null; } if (this.pollTimer) { clearInterval(this.pollTimer); this.pollTimer = null; } }, ler: async function(){
+},parar: function(){ if (this.es) { this.es.close(); this.es = null; } if (this.pollTimer) { clearInterval(this.pollTimer); this.pollTimer = null; } },
+ler: async function(){
 var s = this, t = s.topico || topico();
 try {
 var r = await comTimeout(NTFY + '/' + t + '/json?poll=1&since=all', null, 8000);
@@ -219,10 +219,10 @@ function derivar(eventos){
 var ini = 0;
 eventos.forEach(function(e, i){ if (e.k === 'r') ini = i + 1; });
 eventos = eventos.slice(ini);
-var vistos = {}, claims = [], removidos = {}, chamados = {}, atual = null, chamadas = [], cancel = {}, pausada = false, lista = null;
-eventos.forEach(function(e){ if (e.k === 'c' && !vistos[e.id]) { vistos[e.id] = 1; claims.push(e); } });
+var vistos = {}, claims = [], removidos = {}, chamados = {}, atual = null, chamadas = [], cancel = {}, pausada = false, lista = null;eventos.forEach(function(e){ if (e.k === 'c' && !vistos[e.id]) { vistos[e.id] = 1; claims.push(e); } });
 eventos.forEach(function(e){
-if (e.k === 'x') removidos[e.n] = 1; if (e.k === 'n') { chamados[e.n] = 1; atual = e.n; chamadas.push(e._t || 0); }
+if (e.k === 'x') removidos[e.n] = 1;
+if (e.k === 'n') { chamados[e.n] = 1; atual = e.n; chamadas.push(e._t || 0); }
 if (e.k === 'd') atual = null;
 if (e.k === 'q') cancel[e.h] = 1;
 if (e.k === 's') lista = limparLista(e.n);
@@ -234,9 +234,9 @@ var n = i + 1;
 var st = removidos[n] ? 'removida' : (cancel[c.id] && atual !== n && !chamados[n]) ? 'cancelada' : atual === n ? 'atual' : chamados[n] ? 'atendida' : 'espera';
 return {n: n, id: c.id, s: c.s, st: st};
 });
-/* tempo medio entre chamadas (so intervalos de ate 60 min) */
-var soma = 0, qtd = 0;
-for (var i = 1; i < chamadas.length; i++) { var dt = chamadas[i] - chamadas[i - 1]; if (dt > 20 && dt < 3600) { soma += dt; qtd++; } } return {tickets: tickets, atual: atual, total: claims.length, media: qtd >= 2 ? soma / qtd : 0, pausada: pausada, lista: lista};
+/* tempo medio entre chamadas (so intervalos de ate 60 min) */var soma = 0, qtd = 0;
+for (var i = 1; i < chamadas.length; i++) { var dt = chamadas[i] - chamadas[i - 1]; if (dt > 20 && dt < 3600) { soma += dt; qtd++; } }
+return {tickets: tickets, atual: atual, total: claims.length, media: qtd >= 2 ? soma / qtd : 0, pausada: pausada, lista: lista};
 }
 function resumo(eventos){
 var segs = [[]]; eventos.forEach(function(e){ if (e.k === 'r') segs.push([]); else segs[segs.length - 1].push(e); });
@@ -278,7 +278,7 @@ this.bip(1); if (navigator.vibrate) navigator.vibrate(120);
 desativar: function(){ this.ligado = false; try { localStorage.removeItem('leidfila-aviso'); } catch (e) {} if (this.lock) { try { this.lock.release(); } catch (e) {} this.lock = null; } },
 segurarTela: async function(){ try { if ('wakeLock' in navigator && !this.lock) { this.lock = await navigator.wakeLock.request('screen'); var s = this; this.lock.addEventListener('release', function(){ s.lock = null; }); } } catch (e) {} },
 bip: function(vezes){
-if (!this.ctx) return; var c = this.ctx, t0 = c.currentTime; for (var i = 0; i < vezes * 3; i++) { var o = c.createOscillator(), g = c.createGain(); o.frequency.value = i % 3 === 2 ? 1320 : 880; g.gain.value = 0.25; o.connect(g); g.connect(c.destination); o.start(t0 + i * 0.28); o.stop(t0 + i * 0.28 + 0.18); }
+if (!this.ctx) return; var c = this.ctx, t0 = c.currentTime;for (var i = 0; i < vezes * 3; i++) { var o = c.createOscillator(), g = c.createGain(); o.frequency.value = i % 3 === 2 ? 1320 : 880; g.gain.value = 0.25; o.connect(g); g.connect(c.destination); o.start(t0 + i * 0.28); o.stop(t0 + i * 0.28 + 0.18); }
 },
 disparar: function(chave, titulo, corpo){
 if (!this.ligado || this.ultimo === chave) return; this.ultimo = chave;
@@ -313,7 +313,7 @@ if (m) { r.innerHTML = 'Sua senha é a <b>' + pad(m.n) + '</b>. <a href="#/senha
 else r.textContent = 'Não achei nenhuma senha guardada neste celular. Se você já pegou, digite o número do seu print abaixo. Se não, é só pegar uma.';
 };
 document.getElementById('ver').onclick = function(){ var n = parseInt(document.getElementById('num').value.replace(/\D/g, ''), 10); if (n > 0) location.hash = '#/senha/' + pad(n); };
-var btn = document.getElementById('pegar'); function pausa(){ atualizarServs(document.getElementById('servs')); var dd = derivar(Feed.eventos); verificarBloq(dd); var p = dd.pausada, bl = bloqueada(); document.getElementById('pausa').classList.toggle('hidden', !p || bl); document.getElementById('bloq').classList.toggle('hidden', !bl); btn.disabled = p || bl; btn.textContent = bl ? 'Senha já atendida hoje' : p ? 'Fila em pausa' : 'Pegar minha senha'; }
+var btn = document.getElementById('pegar');function pausa(){ atualizarServs(document.getElementById('servs')); var dd = derivar(Feed.eventos); verificarBloq(dd); var p = dd.pausada, bl = bloqueada(); document.getElementById('pausa').classList.toggle('hidden', !p || bl); document.getElementById('bloq').classList.toggle('hidden', !bl); btn.disabled = p || bl; btn.textContent = bl ? 'Senha já atendida hoje' : p ? 'Fila em pausa' : 'Pegar minha senha'; }
 Feed.ouvir(pausa); Feed.iniciar(); pausa();
 btn.onclick = async function(){
 verificarBloq(derivar(Feed.eventos)); if (derivar(Feed.eventos).pausada || bloqueada()) return;
@@ -325,13 +325,13 @@ var n = 0;
 for (var i = 0; i < 6 && !n; i++) {
 var lista = Feed.eventos.slice(); var d = derivar(lista);
 var meu = d.tickets.filter(function(t){ return t.id === id; })[0];
-if (!meu) { try { d = derivar(await Feed.ler()); meu = d.tickets.filter(function(t){ return t.id === id; })[0]; } catch (e) {} }
-if (meu) n = meu.n; else await new Promise(function(r){ setTimeout(r, 700); });
+if (!meu) { try { d = derivar(await Feed.ler()); meu = d.tickets.filter(function(t){ return t.id === id; })[0]; } catch (e) {} }if (meu) n = meu.n; else await new Promise(function(r){ setTimeout(r, 700); });
 }
 if (!n) throw new Error('nao achei');
 guardarSenha(n, id, seg);
 location.hash = '#/senha/' + pad(n);
-} catch (e) {document.getElementById('erro').textContent = 'Não consegui pegar a senha. Confira a internet e tente de novo.';
+} catch (e) {
+document.getElementById('erro').textContent = 'Não consegui pegar a senha. Confira a internet e tente de novo.';
 btn.disabled = false; btn.textContent = 'Pegar minha senha'; pausa();
 }
 };
@@ -366,11 +366,11 @@ document.getElementById('upd').textContent = conexao();
 document.getElementById('pausa').classList.toggle('hidden', !(d.pausada && meu && meu.st === 'espera'));
 document.getElementById('canc').classList.toggle('hidden', !(meu && meu.st === 'espera' && m && m.n === n && m.seg));
 var av = document.getElementById('av'), desc = document.getElementById('avdesc');
-if (Aviso.ligado) { av.textContent = 'Aviso ligado (desligar)'; av.className = 'btn toggle-on'; desc.textContent = 'Vou tocar um som, vibrar e mostrar uma notificação quando você for chamada. Deixe esta página aberta e o celular com som ligado.'; }
-else { av.textContent = 'Ativar aviso'; av.className = 'btn sec'; desc.textContent = 'Toca som e vibra quando for a sua vez. Funciona com a página aberta; no iPhone a vibração não existe.'; }
+if (Aviso.ligado) { av.textContent = 'Aviso ligado (desligar)'; av.className = 'btn toggle-on'; desc.textContent = 'Vou tocar um som, vibrar e mostrar uma notificação quando você for chamada. Deixe esta página aberta e o celular com som ligado.'; }else { av.textContent = 'Ativar aviso'; av.className = 'btn sec'; desc.textContent = 'Toca som e vibra quando for a sua vez. Funciona com a página aberta; no iPhone a vibração não existe.'; }
 }
 document.getElementById('cancelar').onclick = async function(){
-var m = minhaSenha(); if (!m || !m.seg) return; if (!confirm('Cancelar a senha ' + pad(n) + '? Você sai da fila.')) return;
+var m = minhaSenha(); if (!m || !m.seg) return;
+if (!confirm('Cancelar a senha ' + pad(n) + '? Você sai da fila.')) return;
 var b = document.getElementById('cancelar'); b.disabled = true;
 try { await enviar({k: 'q', sec: m.seg}); for (var i = 0; i < 8; i++) { try { await Feed.ler(); } catch (e) {} var dd = derivar(Feed.eventos), mm = dd.tickets.filter(function(t){ return t.n === n; })[0]; if (mm && mm.st === 'cancelada') break; await new Promise(function(r){ setTimeout(r, 600); }); } }
 catch (e) { alert('Não consegui cancelar. Confira a internet e tente de novo.'); }
@@ -408,18 +408,18 @@ Feed.limparOuvintes();
 $app.innerHTML = '<h1>Fila de hoje</h1><p class="lead" id="cont">Carregando...</p>' +
 '<h2>Vez agora</h2><div id="agora" class="small">Carregando...</div>' +
 '<div class="row"><button class="btn" id="prox">Chamar próxima</button><button class="btn sec" id="fim">Terminei o atendimento</button></div><div class="row"><button class="btn sec" id="pausar">Pausar a fila</button></div><p class="err" id="msg"></p>' +
-'<h2>Na fila</h2><div id="lista"></div><p class="small" id="upd"></p>' +
-'<div class="row"><button class="btn sec small" id="atu">Atualizar agora</button><button class="btn sec small" id="sair">Sair</button></div>' +
+'<h2>Na fila</h2><div id="lista"></div><p class="small" id="upd"></p>' +'<div class="row"><button class="btn sec small" id="atu">Atualizar agora</button><button class="btn sec small" id="sair">Sair</button></div>' +
 '<h2>Resumo do dia</h2><div id="resumo" class="small">Carregando...</div>' +
-'<div class="row"><a class="btn sec" href="#/dona/caixa" style="text-decoration:none">Registros do mês e preços</a></div>' + '<h2>Começar do zero</h2><p class="small">Apaga todos os números e volta para a senha 001. As clientes com senha antiga veem "Fila reiniciada".</p>' +
+'<div class="row"><a class="btn sec" href="#/dona/caixa" style="text-decoration:none">Registros do mês e preços</a></div>' +
+'<h2>Começar do zero</h2><p class="small">Apaga todos os números e volta para a senha 001. As clientes com senha antiga veem "Fila reiniciada".</p>' +
 '<div class="row"><button class="btn sec" id="limpar">Limpar a fila e recomeçar</button></div>' +
 '<div class="note">A fila guarda só números e o serviço, sem nomes. Ela também zera sozinha a cada dia.</div>';
-var ocupado = false, confirmando = false, tmr = null, autoPub = false;
-function desenhar(){
+var ocupado = false, confirmando = false, tmr = null, autoPub = false;function desenhar(){
 var d = derivar(Feed.eventos);
 var esp = d.tickets.filter(function(t){ return t.st === 'espera'; });
 var at = d.tickets.filter(function(t){ return t.st === 'atual'; })[0];
-document.getElementById('cont').textContent = esp.length + ' esperando'; document.getElementById('agora').innerHTML = at ? '<b style="color:var(--g1);font-size:20px">Senha ' + pad(at.n) + '</b> · ' + esc(at.s) : 'Ninguém sendo atendida agora.';
+document.getElementById('cont').textContent = esp.length + ' esperando';
+document.getElementById('agora').innerHTML = at ? '<b style="color:var(--g1);font-size:20px">Senha ' + pad(at.n) + '</b> · ' + esc(at.s) : 'Ninguém sendo atendida agora.';
 document.getElementById('lista').innerHTML = esp.length ? esp.map(function(t, i){ return '<div class="item"><div><b>Senha ' + pad(t.n) + '</b><br><span class="small">' + esc(t.s) + ' · ' + (i === 0 ? 'é a próxima' : i + ' na frente') + '</span></div><button class="btn sec small" data-x="' + t.n + '">Tirar da fila</button></div>'; }).join('') : '<p class="small">Fila vazia. ' + d.total + ' senha(s) hoje.</p>';
 document.getElementById('upd').textContent = conexao();
 registrarHoje();
@@ -455,10 +455,10 @@ clearTimeout(tmr); confirmando = false; lb.textContent = 'Limpar a fila e recome
 acao(function(){ return {k: 'r', t: Date.now()}; });
 };
 Feed.ouvir(desenhar); Feed.iniciar(); desenhar();
-}
-var CK = 'leidfila-caixa';
+}var CK = 'leidfila-caixa';
 function dbLer(){
-try { var d = JSON.parse(localStorage.getItem(CK) || 'null'); if (d && d.dias && d.precos) return d; } catch (e) {}var nomes = SERVICOS_FILA.concat(SERVICOS_AGENDA.replace(/[^)]*/g, '').replace(/ e /g, ', ').split(',').map(function(x){ return x.trim(); }).filter(Boolean)).map(function(n){ return n.charAt(0).toUpperCase() + n.slice(1); });
+try { var d = JSON.parse(localStorage.getItem(CK) || 'null'); if (d && d.dias && d.precos) return d; } catch (e) {}
+var nomes = SERVICOS_FILA.concat(SERVICOS_AGENDA.replace(/[(][^)]*[)]/g, '').replace(/ e /g, ', ').split(',').map(function(x){ return x.trim(); }).filter(Boolean)).map(function(n){ return n.charAt(0).toUpperCase() + n.slice(1); });
 var vistos = {}, lista = [];
 PRECOS_PADRAO.forEach(function(p){ vistos[p[0].toLowerCase()] = 1; lista.push({n: p[0], v: p[1], z: p[2]}); });
 nomes.forEach(function(n){ if (!vistos[n.toLowerCase()]) { vistos[n.toLowerCase()] = 1; lista.push({n: n, v: 0, z: 0}); } });
@@ -472,7 +472,7 @@ return Feed.seq > ev.q;
 }
 function dbSalvar(d){ try { localStorage.setItem(CK, JSON.stringify(d)); } catch (e) { alert('Não consegui guardar neste celular (espaço ou modo privado).'); } }
 function brl(v){ return Number(v || 0).toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'}); }
-function numv(t){ var n = parseFloat(String(t).replace(/[^\d,.-]/g, '').replace(/.(?=\d{3}(\D|$))/g, '').replace(',', '.')); return isFinite(n) && n >= 0 ? Math.round(n * 100) / 100 : 0; }
+function numv(t){ var n = parseFloat(String(t).replace(/[^\d,.-]/g, '').replace(/./g, '').replace(',', '.')); return isFinite(n) && n >= 0 ? Math.round(n * 100) / 100 : 0; }
 function precoDe(db, serv){ var k = String(serv).toLowerCase(); for (var i = 0; i < db.precos.length; i++) if (db.precos[i].n.toLowerCase() === k) return db.precos[i].v; return 0; }
 function ymd(k){ return k.slice(6, 8) + '/' + k.slice(4, 6) + '/' + k.slice(0, 4); }
 function registrarHoje(){
@@ -488,7 +488,7 @@ Object.keys(db.dias).sort().forEach(function(k){ if (k.slice(0, 6) !== mes) retu
 return {por: por, tot: tot, qtd: qtd, dias: dias};
 }
 function textoMes(db, mes){
-var r = resumoMes(db, mes), l = ['Leid's designer - ' + mes.slice(4, 6) + '/' + mes.slice(0, 4), 'Atendimentos: ' + r.qtd + ' em ' + r.dias + ' dia(s)', 'Faturamento: ' + brl(r.tot), ''];
+var r = resumoMes(db, mes), l = ["Leid's designer - " + mes.slice(4, 6) + '/' + mes.slice(0, 4), 'Atendimentos: ' + r.qtd + ' em ' + r.dias + ' dia(s)', 'Faturamento: ' + brl(r.tot), ''];
 Object.keys(r.por).sort().forEach(function(k){ l.push(k + ': ' + r.por[k].q + ' x, ' + brl(r.por[k].v)); });
 return l.join('\n');
 }
@@ -501,17 +501,17 @@ function copiar(t, el){ try { navigator.clipboard.writeText(t).then(function(){ 
 function telaCaixa(){
 if (!ehDona()) return telaPin();
 Feed.limparOuvintes();
-var aba = 'hoje', mes = dia().slice(0, 6);
-$app.innerHTML = '<h1>Registros e preços</h1><p class="small" style="text-align:center">Só você vê esta página. Sem nomes nem telefones. Fica guardado neste celular.</p>' +'<div class="row" style="justify-content:center"><button class="btn sec small" data-a="hoje">Hoje</button><button class="btn sec small" data-a="mes">Mês</button><button class="btn sec small" data-a="precos">Serviços</button><button class="btn sec small" data-a="backup">Backup</button></div><div id="corpo"></div>' +
+var aba = 'hoje', mes = dia().slice(0, 6);'<div class="row" style="justify-content:center"><button class="btn sec small" data-a="hoje">Hoje</button><button class="btn sec small" data-a="mes">Mês</button><button class="btn sec small" data-a="precos">Serviços</button><button class="btn sec small" data-a="backup">Backup</button></div><div id="corpo"></div>' +
 '<div class="row"><a class="btn sec small" href="#/dona" style="text-decoration:none">Voltar ao painel</a></div>';
 var corpo = document.getElementById('corpo');
 function servicos(db){ return db.precos.map(function(p){ return p.n; }); }
 function desenhar(){
 var db = dbLer(), h = '';
 document.querySelectorAll('[data-a]').forEach(function(b){ b.className = 'btn small' + (b.getAttribute('data-a') === aba ? '' : ' sec'); });
-if (aba === 'hoje') {
+$app.innerHTML = '<h1>Registros e preços</h1><p class="small" style="text-align:center">Só você vê esta página. Sem nomes nem telefones. Fica guardado neste celular.</p>' +if (aba === 'hoje') {
 var k = dia(), dd = db.dias[k] || {itens: [], ign: []}, tot = 0;
-h += '<h2>Hoje, ' + ymd(k) + '</h2><p class="small">As senhas chamadas entram aqui sozinhas, com o preço da sua lista. Mude o valor se foi diferente (promoção, desconto).</p>';h += dd.itens.length ? dd.itens.map(function(i, ix){ tot += i.v; return '<div class="item"><div><b>' + (i.n ? 'Senha ' + pad(i.n) : 'Agendada') + '</b><br><span class="small">' + esc(i.s) + '</span></div><div style="display:flex;gap:6px;align-items:center"><input data-v="' + ix + '" type="text" inputmode="decimal" value="' + String(i.v).replace('.', ',') + '" style="width:92px;padding:8px"><button class="btn sec small" data-rm="' + ix + '">x</button></div></div>'; }).join('') : '<p class="small">Nenhum atendimento registrado hoje ainda.</p>';
+h += '<h2>Hoje, ' + ymd(k) + '</h2><p class="small">As senhas chamadas entram aqui sozinhas, com o preço da sua lista. Mude o valor se foi diferente (promoção, desconto).</p>';
+h += dd.itens.length ? dd.itens.map(function(i, ix){ tot += i.v; return '<div class="item"><div><b>' + (i.n ? 'Senha ' + pad(i.n) : 'Agendada') + '</b><br><span class="small">' + esc(i.s) + '</span></div><div style="display:flex;gap:6px;align-items:center"><input data-v="' + ix + '" type="text" inputmode="decimal" value="' + String(i.v).replace('.', ',') + '" style="width:92px;padding:8px"><button class="btn sec small" data-rm="' + ix + '">x</button></div></div>'; }).join('') : '<p class="small">Nenhum atendimento registrado hoje ainda.</p>';
 h += '<p class="ok">Total de hoje: <b>' + brl(tot) + '</b> · ' + dd.itens.length + ' atendimento(s)</p>';
 h += '<h2>Adicionar atendimento</h2><p class="small">Para quem foi por agendamento ou não passou pela fila.</p><label>Serviço</label><select id="nsrv" style="width:100%;padding:12px;border-radius:10px;border:1px solid var(--g3);background:#0b0909;color:var(--g1);font-size:16px">' + servicos(db).map(function(n){ return '<option>' + esc(n) + '</option>'; }).join('') + '</select><label>Valor (R$)</label><input id="nval" type="text" inputmode="decimal" placeholder="Deixe vazio para usar o preço da lista"><div class="row"><button class="btn" id="nadd">Adicionar</button></div>';
 } else if (aba === 'mes') {
@@ -524,9 +524,9 @@ h += '<div class="row"><button class="btn" id="cpm">Copiar resumo do mês</butto
 } else if (aba === 'precos') {
 var pub = listaPublicada(Feed.eventos);
 h += '<h2>Serviços e valores</h2><p class="small">As clientes veem esta lista na tela delas. Só você edita. Marque "pelo WhatsApp" para mostrar esse texto no lugar do preço. Serviço com valor 0 e sem a marca fica escondido das clientes. Os valores também alimentam o faturamento.</p>';
-h += db.precos.map(function(p, ix){ return '<div class="item" style="flex-wrap:wrap"><input data-pn="' + ix + '" type="text" value="' + esc(p.n) + '" style="flex:1 1 150px;padding:8px"><input data-pv="' + ix + '" type="text" inputmode="decimal" value="' + String(p.v).replace('.', ',') + '" style="width:90px;padding:8px"><label style="margin:0;display:flex;gap:6px;align-items:center"><input type="checkbox" data-pz="' + ix + '"' + (p.z ? ' checked' : '') + '> pelo WhatsApp</label><button class="btn sec small" data-prm="' + ix + '">x</button></div>'; }).join('');
-h += '<div class="row"><button class="btn sec" id="padd">Adicionar serviço</button></div><div class="row"><button class="btn" id="ppub">Salvar e publicar para as clientes</button></div><p class="small" id="pmsg">' + (pub ? 'Lista publicada hoje.' : 'Ainda não publicada hoje: as clientes veem só a lista padrão.') + '</p><p class="small">A lista publicada vale só para o dia (a fila zera todo dia). Ao abrir o painel, ela é publicada sozinha. Preço novo vale para os próximos atendimentos registrados; os já registrados mantêm o valor.</p>';
-} else {h += '<h2>Backup</h2><p class="small"><b>Importante:</b> os registros ficam só neste celular. Se você limpar os dados do navegador, trocar de celular ou usar outro navegador, eles somem. Copie o backup uma vez por semana e guarde no WhatsApp (conversa com você mesma) ou e-mail.</p><div class="row"><button class="btn" id="bk">Copiar backup</button></div><p class="small" id="bmsg"></p><label>Restaurar backup (cole aqui)</label><textarea id="bkin" rows="4" style="width:100%;background:#0b0909;color:var(--g1);border:1px solid var(--g3);border-radius:10px;padding:10px"></textarea><div class="row"><button class="btn sec" id="rest">Restaurar</button></div>';
+h += db.precos.map(function(p, ix){ return '<div class="item" style="flex-wrap:wrap"><input data-pn="' + ix + '" type="text" value="' + esc(p.n) + '" style="flex:1 1 150px;padding:8px"><input data-pv="' + ix + '" type="text" inputmode="decimal" value="' + String(p.v).replace('.', ',') + '" style="width:90px;padding:8px"><label style="margin:0;display:flex;gap:6px;align-items:center"><input type="checkbox" data-pz="' + ix + '"' + (p.z ? ' checked' : '') + '> pelo WhatsApp</label><button class="btn sec small" data-prm="' + ix + '">x</button></div>'; }).join('');h += '<div class="row"><button class="btn sec" id="padd">Adicionar serviço</button></div><div class="row"><button class="btn" id="ppub">Salvar e publicar para as clientes</button></div><p class="small" id="pmsg">' + (pub ? 'Lista publicada hoje.' : 'Ainda não publicada hoje: as clientes veem só a lista padrão.') + '</p><p class="small">A lista publicada vale só para o dia (a fila zera todo dia). Ao abrir o painel, ela é publicada sozinha. Preço novo vale para os próximos atendimentos registrados; os já registrados mantêm o valor.</p>';
+} else {
+h += '<h2>Backup</h2><p class="small"><b>Importante:</b> os registros ficam só neste celular. Se você limpar os dados do navegador, trocar de celular ou usar outro navegador, eles somem. Copie o backup uma vez por semana e guarde no WhatsApp (conversa com você mesma) ou e-mail.</p><div class="row"><button class="btn" id="bk">Copiar backup</button></div><p class="small" id="bmsg"></p><label>Restaurar backup (cole aqui)</label><textarea id="bkin" rows="4" style="width:100%;background:#0b0909;color:var(--g1);border:1px solid var(--g3);border-radius:10px;padding:10px"></textarea><div class="row"><button class="btn sec" id="rest">Restaurar</button></div>';
 }
 corpo.innerHTML = h;
 }
@@ -548,8 +548,7 @@ else if (t.id === 'padd') { db.precos.push({n: 'Novo serviço', v: 0, z: 0}); db
 else if (t.hasAttribute('data-prm')) { if (confirm('Tirar este serviço da lista?')) { db.precos.splice(+t.getAttribute('data-prm'), 1); dbSalvar(db); desenhar(); } }
 else if (t.id === 'cpm') copiar(textoMes(db, mes), document.getElementById('mmsg'));
 else if (t.id === 'csv') { try { var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['\ufeff' + csvMes(db, mes)], {type: 'text/csv'})); a.download = 'registros-' + mes + '.csv'; document.body.appendChild(a); a.click(); a.remove(); } catch (x) { document.getElementById('mmsg').textContent = 'Não consegui baixar. Use "Copiar resumo".'; } }
-else if (t.id === 'bk') copiar(JSON.stringify(db), document.getElementById('bmsg'));
-else if (t.id === 'rest') { try { var n = JSON.parse(document.getElementById('bkin').value); if (!n || !n.dias || !n.precos) throw 0; if (confirm('Isto troca os registros e preços deste celular pelos do backup. Continuar?')) { dbSalvar(n); aba = 'hoje'; desenhar(); } } catch (x) { alert('Backup inválido.'); } }
+else if (t.id === 'bk') copiar(JSON.stringify(db), document.getElementById('bmsg'));else if (t.id === 'rest') { try { var n = JSON.parse(document.getElementById('bkin').value); if (!n || !n.dias || !n.precos) throw 0; if (confirm('Isto troca os registros e preços deste celular pelos do backup. Continuar?')) { dbSalvar(n); aba = 'hoje'; desenhar(); } } catch (x) { alert('Backup inválido.'); } }
 });
 Feed.ouvir(function(){ registrarHoje(); if (aba === 'hoje' && !corpo.contains(document.activeElement)) desenhar(); });
 Feed.iniciar(); registrarHoje(); desenhar();
@@ -559,7 +558,8 @@ var h = location.hash.replace(/^#/, '') || '/';
 var m = h.match(/^\/senha\/(\d+)/);
 if (m) return telaStatus(parseInt(m[1], 10));
 if (h === '/dona') return telaDona();
-if (h === '/dona/caixa') return telaCaixa();if (h === '/gerar') return telaGerar();
+if (h === '/dona/caixa') return telaCaixa();
+if (h === '/gerar') return telaGerar();
 var minha = minhaSenha();
 if (h === '/' && minha) { location.replace('#/senha/' + pad(minha.n)); return; }
 telaPegar();
