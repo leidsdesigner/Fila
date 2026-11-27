@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fila de senhas - Leid's designer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;1,500&family=Noto+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0f0d0e;--card:#171415;--line:#6b4a47;--g1:#f0c8b4;--g2:#cd8c7d;--g3:#a0605a;--txt:#e9c3b3;--soft:#b98d82;--panel:#faf5f0;--ink:#141010}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--txt);font-family:'Noto Sans',system-ui,sans-serif;font-weight:300;line-height:1.5}
+.wrap{max-width:560px;margin:0 auto;padding:28px 20px 60px}
+.frame{border:1px solid var(--g3);border-radius:22px;padding:26px 20px;box-shadow:0 0 0 5px var(--bg),0 0 0 6px #4a3231}
+.brand{font-family:'Playfair Display',Georgia,serif;font-style:italic;font-size:26px;text-align:center;color:var(--g2)}
+.star{text-align:center;color:var(--g2);font-size:14px;margin:4px 0 14px}
+h1,h2{font-family:'Playfair Display',Georgia,serif;font-weight:600;margin:0;background:linear-gradient(100deg,var(--g3),var(--g1));-webkit-background-clip:text;background-clip:text;color:transparent}
+h1{font-size:40px;text-align:center;line-height:1.1;margin-bottom:10px}
+h2{font-size:24px;margin:26px 0 10px}
+p{margin:8px 0}
+.lead{text-align:center;font-size:17px;color:var(--txt)}
+.note{border-left:3px solid var(--g3);padding:6px 0 6px 12px;margin:18px 0;color:var(--soft);font-size:14px}
+.note b{color:var(--g1);font-weight:500}
+a{color:var(--g1)}
+.chips{display:flex;flex-wrap:wrap;gap:10px;margin:10px 0 18px}
+.chip{border:1px solid var(--g3);background:transparent;color:var(--txt);padding:11px 14px;border-radius:10px;font:inherit;font-size:15px;cursor:pointer;min-height:44px}
+.chip.on{background:linear-gradient(100deg,var(--g3),var(--g2));color:#1a1210;border-color:transparent;font-weight:500}
+.btn{display:inline-block;border:0;border-radius:10px;padding:14px 20px;font:inherit;font-weight:500;font-size:16px;cursor:pointer;min-height:48px;background:linear-gradient(100deg,var(--g3),var(--g1));color:#1a1210}
+.btn.sec{background:transparent;border:1px solid var(--g3);color:var(--txt)}
+.btn.small{padding:9px 14px;min-height:40px;font-size:14px}
+.btn:disabled{opacity:.5}
+.row{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0}
+input[type=text],input[type=password],input[type=tel]{width:100%;padding:13px;border-radius:10px;border:1px solid var(--g3);background:#0b0909;color:var(--g1);font:inherit;font-size:17px}
+label{font-size:14px;color:var(--soft);display:block;margin-top:12px}
+.small{font-size:13px;color:var(--soft)}
+.big{font-family:'Playfair Display',Georgia,serif;font-size:60px;text-align:center;line-height:1;background:linear-gradient(100deg,var(--g3),var(--g1));-webkit-background-clip:text;background-clip:text;color:transparent;margin:8px 0}
+.status{text-align:center;font-size:22px;color:var(--g1);font-weight:400;margin:6px 0 4px}
+.item{border-bottom:1px solid #3a2a29;padding:12px 0;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.item b{color:var(--g1);font-weight:500;font-size:18px}
+.err{color:#ff9a8a;font-size:14px}
+.hidden{display:none}
+footer{margin-top:24px;text-align:center;font-size:13px;color:var(--soft)}
+footer a{color:var(--soft)}
+</style>
+</head>
+<body>
+<div class="wrap"><div class="frame">
+<div class="brand">Leid's designer</div><div class="star">&#10022;</div>
+<div id="app"></div>
+<footer id="foot"></footer>
+</div></div>
+
+<script>
+/* ===== CONFIGURACAO (so mexa aqui) ===== */
+// Troque o texto abaixo por qualquer sequencia longa de letras/numeros sem espaco. E o "nome secreto" da fila.
+var SEGREDO = '1895e8f211178125';// PIN da dona: veja o passo a passo (abra o site com #/gerar no final, digite o PIN e cole o resultado aqui).
+// Enquanto estiver vazio, o painel da dona fica trancado.
+var PIN_HASH = '';
+var WHATSAPP = '5585985308284';
+var SERVICOS_FILA = ['Design personalizado', 'Design com henna', 'Buço', 'Spa labial'];
+var SERVICOS_AGENDA = 'microblading, fio a fio, microlabial, brow lamination, epilação facial, spa das sobrancelhas e hidra gloss';
+var NTFY = 'https://ntfy.sh';
+var POLL_MS = 15000;
+/* ===== FIM DA CONFIGURACAO ===== */
+
+var $app = document.getElementById('app');
+var timer = null;
+var pad = function(n){ return String(n).padStart(3, '0'); };
+function dia(){ return new Intl.DateTimeFormat('en-CA', {timeZone: 'America/Fortaleza'}).format(new Date()).replace(/-/g, ''); }
+function topico(){ return 'leidfila-' + SEGREDO + '-' + dia(); }
+function esc(s){ return String(s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+function hhmm(d){ return d.toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'}); }
+
+async function lerLog(){
+  var r = await fetch(NTFY + '/' + topico() + '/json?poll=1&since=all');
+  if (!r.ok) throw new Error('ler ' + r.status);
+  var t = await r.text(), out = [];
+  t.split('\n').forEach(function(l){
+    if (!l.trim()) return;
+    try { var m = JSON.parse(l); if (m.event !== 'message') return; var e = JSON.parse(m.message); if (e && e.k) out.push(e); } catch (x) {}
+  });
+  return out;
+}
+async function enviar(ev){
+  var r = await fetch(NTFY + '/' + topico(), {method: 'POST', body: JSON.stringify(ev)});
+  if (!r.ok) throw new Error('enviar ' + r.status);
+}
+function codigo(){ var a = new Uint8Array(9); crypto.getRandomValues(a); return Array.from(a, function(b){ return b.toString(36).padStart(2, '0'); }).join('').slice(0, 12); }
+
+function derivar(eventos){
+  var vistos = {}, claims = [], removidos = {}, chamados = {}, atual = null;
+  eventos.forEach(function(e){ if (e.k === 'c' && !vistos[e.id]) { vistos[e.id] = 1; claims.push(e); } });
+  eventos.forEach(function(e){
+    if (e.k === 'x') removidos[e.n] = 1;
+    if (e.k === 'n') { chamados[e.n] = 1; atual = e.n; }
+    if (e.k === 'd') atual = null;
+  });
+  var tickets = claims.map(function(c, i){
+    var n = i + 1;
+    var st = removidos[n] ? 'removida' : atual === n ? 'atual' : chamados[n] ? 'atendida' : 'espera';
+    return {n: n, id: c.id, s: c.s, st: st};
+  });
+  return {tickets: tickets, atual: atual, total: claims.length};
+}
+async function sha(txt){
+  var b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('leidfila|' + txt));
+  return Array.from(new Uint8Array(b), function(x){ return x.toString(16).padStart(2, '0'); }).join('');
+}
+
+/* guarda a senha da cliente neste aparelho */
+function minhaSenha(){ try { var v = JSON.parse(localStorage.getItem('leidfila-minha') || 'null'); return v && v.dia === dia() ? v : null; } catch (e) { return null; } }
+function guardarSenha(n, id){ try { localStorage.setItem('leidfila-minha', JSON.stringify({dia: dia(), n: n, id: id})); } catch (e) {} }
+function esquecerSenha(){ try { localStorage.removeItem('leidfila-minha'); } catch (e) {} }
+
+function aviso(){
+  return '<div class="note"><b>Fila só para:</b> ' + SERVICOS_FILA.map(esc).join(', ') + '.<br><b>Por agendamento no WhatsApp:</b> ' + esc(SERVICOS_AGENDA) + '.<br>Com horário marcado ou quer agendar? <a href="https://wa.me/' + WHATSAPP + '">Fale com a Leidi no WhatsApp</a>.</div>';
+}
+function parar(){ if (timer) { clearInterval(timer); timer = null; } }
+function agendar(fn){ parar(); fn(); timer = setInterval(fn, POLL_MS); }
+
+/* ---------- cliente: pegar senha ---------- */
+function telaPegar(){
+  parar();
+  var servico = SERVICOS_FILA[0];$app.innerHTML = '<h1>Pegue sua senha</h1><p class="lead">Atendimento por ordem de chegada.<br>Chegou sem hora marcada? Pegue sua senha aqui e acompanhe sua vez pelo celular.</p>' + aviso() +
+    '<h2>Qual serviço você quer?</h2><div class="chips" id="chips"></div>' +
+    '<div class="row"><button class="btn" id="pegar">Pegar minha senha</button></div><p class="err" id="erro"></p>' +
+    '<p class="small">Aperte uma vez só. Depois de pegar, tire um print da tela com o seu número.</p>' +
+    '<h2>Já peguei minha senha</h2><label for="num">Número da senha</label><input id="num" type="tel" inputmode="numeric" placeholder="Ex.: 004">' +
+    '<div class="row"><button class="btn sec" id="ver">Ver minha vez</button></div>';
+  var chips = document.getElementById('chips');
+  function desenhar(){ chips.innerHTML = SERVICOS_FILA.map(function(s){ return '<button class="chip' + (s === servico ? ' on' : '') + '" data-s="' + esc(s) + '">' + esc(s) + '</button>'; }).join(''); }
+  desenhar();
+  chips.addEventListener('click', function(e){ var b = e.target.closest('.chip'); if (b) { servico = b.getAttribute('data-s'); desenhar(); } });
+  document.getElementById('ver').onclick = function(){ var n = parseInt(document.getElementById('num').value.replace(/\D/g, ''), 10); if (n > 0) location.hash = '#/senha/' + pad(n); };
+  var btn = document.getElementById('pegar');
+  btn.onclick = async function(){
+    btn.disabled = true; btn.textContent = 'Pegando...'; document.getElementById('erro').textContent = '';
+    var id = codigo();
+    try {
+      await enviar({k: 'c', id: id, s: servico});
+      var n = 0;
+      for (var i = 0; i < 4 && !n; i++) {
+        var d = derivar(await lerLog());
+        var meu = d.tickets.filter(function(t){ return t.id === id; })[0];
+        if (meu) n = meu.n; else await new Promise(function(r){ setTimeout(r, 800); });
+      }
+      if (!n) throw new Error('nao achei');
+      guardarSenha(n, id);
+      location.hash = '#/senha/' + pad(n);
+    } catch (e) {
+      document.getElementById('erro').textContent = 'Não consegui pegar a senha. Tente de novo em instantes.';
+      btn.disabled = false; btn.textContent = 'Pegar minha senha';
+    }
+  };
+}
+
+/* ---------- cliente: acompanhar ---------- */
+function telaStatus(n){
+  $app.innerHTML = '<h1>Sua senha</h1><div class="big">' + pad(n) + '</div><div class="status" id="st">Carregando...</div><p class="lead" id="sub"></p>' +
+    '<div class="note"><b>Guarde seu número.</b> Tire um print desta tela. Esta página lembra a sua senha neste celular e atualiza sozinha a cada 15 segundos, é só deixar aberta.</div>' +
+    '<p class="small" id="upd"></p><div class="row"><button class="btn sec small" id="atu">Atualizar agora</button><button class="btn sec small" id="outra">Pegar outra senha</button></div>' + aviso();
+  async function atualizar(){
+    try {
+      var d = derivar(await lerLog());
+      var meu = d.tickets.filter(function(t){ return t.n === n; })[0];
+      var st = document.getElementById('st'), sub = document.getElementById('sub');
+      if (!meu) { st.textContent = 'Senha não encontrada'; sub.textContent = 'Essa senha não existe na fila de hoje. Confira o número ou pegue uma nova.'; }
+      else if (meu.st === 'atual') { st.textContent = 'É a sua vez!'; sub.textContent = 'Pode vir. Você está sendo chamada agora.'; }
+      else if (meu.st === 'atendida') { st.textContent = 'Já atendida'; sub.textContent = 'Sua senha já foi chamada hoje.'; }
+      else if (meu.st === 'removida') { st.textContent = 'Senha cancelada'; sub.textContent = 'Essa senha saiu da fila. Fale com a Leidi se foi engano.'; }
+      else {
+        var antes = d.tickets.filter(function(t){ return t.n < n && t.st === 'espera'; }).length;st.textContent = antes === 0 ? 'Você é a próxima' : 'Faltam ' + antes + ' na sua frente';
+        sub.textContent = d.atual ? 'Vez agora: senha ' + pad(d.atual) + '.' : 'Ainda não começou a chamar. Fique por perto.';
+      }
+      document.getElementById('upd').textContent = 'Atualizado às ' + hhmm(new Date()) + '.';
+    } catch (e) { document.getElementById('upd').textContent = 'Sem conexão com a fila. Vou tentar de novo.'; }
+  }
+  document.getElementById('atu').onclick = atualizar;
+  document.getElementById('outra').onclick = function(){ if (confirm('Pegar uma nova senha? A senha ' + pad(n) + ' continua na fila.')) { esquecerSenha(); location.hash = '#/pegar'; } };
+  agendar(atualizar);
+}
+
+/* ---------- dona ---------- */
+function ehDona(){ try { return localStorage.getItem('leidfila-dona') === PIN_HASH && PIN_HASH !== ''; } catch (e) { return false; } }
+function telaPin(){
+  parar();
+  if (!PIN_HASH) { $app.innerHTML = '<h1>Painel da dona</h1><p class="lead">O PIN ainda não foi definido no código. Siga o passo a passo para definir.</p><div class="row"><a class="btn sec small" href="#/gerar">Gerar o PIN</a></div>'; return; }
+  $app.innerHTML = '<h1>Painel da dona</h1><label for="pin">PIN</label><input id="pin" type="password" inputmode="numeric" autocomplete="off"><div class="row"><button class="btn" id="ok">Entrar</button></div><p class="err" id="erro"></p>';
+  document.getElementById('ok').onclick = async function(){
+    var h = await sha(document.getElementById('pin').value);
+    if (h === PIN_HASH) { localStorage.setItem('leidfila-dona', h); location.hash = '#/dona'; render(); }
+    else document.getElementById('erro').textContent = 'PIN incorreto.';
+  };
+}
+function telaGerar(){
+  parar();
+  $app.innerHTML = '<h1>Gerar o PIN</h1><p class="lead">Digite o PIN que você quer (4 a 8 números). Copie o código que aparecer e cole no arquivo, na linha PIN_HASH.</p><label for="pin">Novo PIN</label><input id="pin" type="text" inputmode="numeric" autocomplete="off"><div class="row"><button class="btn" id="g">Gerar código</button></div><p class="small" id="out" style="word-break:break-all;color:var(--g1)"></p>';
+  document.getElementById('g').onclick = async function(){ var p = document.getElementById('pin').value.trim(); if (p.length < 4) { document.getElementById('out').textContent = 'Use pelo menos 4 números.'; return; } document.getElementById('out').textContent = await sha(p); };
+}
+function telaDona(){
+  if (!ehDona()) return telaPin();
+  $app.innerHTML = '<h1>Fila de hoje</h1><p class="lead" id="cont">Carregando...</p>' +
+    '<h2>Vez agora</h2><div id="agora" class="small">Carregando...</div>' +
+    '<div class="row"><button class="btn" id="prox">Chamar próxima</button><button class="btn sec" id="fim">Terminei o atendimento</button></div><p class="err" id="msg"></p>' +
+    '<h2>Na fila</h2><div id="lista"></div><p class="small" id="upd"></p>' +
+    '<div class="row"><button class="btn sec small" id="atu">Atualizar agora</button><button class="btn sec small" id="sair">Sair</button></div>' +
+    '<div class="note">A fila guarda só números e o serviço, sem nomes. A fila zera sozinha a cada dia.</div>';
+  var ocupado = false;
+  async function atualizar(){
+    try {
+      var d = derivar(await lerLog());
+      var esp = d.tickets.filter(function(t){ return t.st === 'espera'; });
+      var at = d.tickets.filter(function(t){ return t.st === 'atual'; })[0];
+      document.getElementById('cont').textContent = esp.length + ' esperando';
+      document.getElementById('agora').innerHTML = at ? '<b style="color:var(--g1);font-size:20px">Senha ' + pad(at.n) + '</b> · ' + esc(at.s) : 'Ninguém sendo atendida agora.';document.getElementById('lista').innerHTML = esp.length ? esp.map(function(t, i){ return '<div class="item"><div><b>Senha ' + pad(t.n) + '</b><br><span class="small">' + esc(t.s) + ' · ' + (i === 0 ? 'é a próxima' : i + ' na frente') + '</span></div><button class="btn sec small" data-x="' + t.n + '">Tirar da fila</button></div>'; }).join('') : '<p class="small">Fila vazia. ' + d.total + ' senha(s) hoje.</p>';
+      document.getElementById('upd').textContent = 'Atualizado às ' + hhmm(new Date()) + '. Atualiza sozinho a cada 15 segundos.';
+    } catch (e) { document.getElementById('upd').textContent = 'Sem conexão com a fila. Vou tentar de novo.'; }
+  }
+  async function acao(f){
+    if (ocupado) return; ocupado = true; document.getElementById('msg').textContent = '';
+    try { var d = derivar(await lerLog()); var ev = f(d); if (ev) await enviar(ev); else document.getElementById('msg').textContent = 'Ninguém na fila agora.'; await atualizar(); }
+    catch (e) { document.getElementById('msg').textContent = 'Não consegui enviar. Tente de novo.'; }
+    ocupado = false;
+  }
+  document.getElementById('prox').onclick = function(){ acao(function(d){ var p = d.tickets.filter(function(t){ return t.st === 'espera'; })[0]; return p ? {k: 'n', n: p.n} : null; }); };
+  document.getElementById('fim').onclick = function(){ acao(function(){ return {k: 'd'}; }); };
+  document.getElementById('lista').onclick = function(e){ var b = e.target.closest('[data-x]'); if (b) acao(function(){ return {k: 'x', n: parseInt(b.getAttribute('data-x'), 10)}; }); };
+  document.getElementById('atu').onclick = atualizar;
+  document.getElementById('sair').onclick = function(){ localStorage.removeItem('leidfila-dona'); location.hash = '#/pegar'; };
+  agendar(atualizar);
+}
+
+/* ---------- rotas ---------- */
+function render(){
+  var h = location.hash.replace(/^#/, '') || '/';
+  var m = h.match(/^\/senha\/(\d+)/);
+  if (m) return telaStatus(parseInt(m[1], 10));
+  if (h === '/dona') return telaDona();
+  if (h === '/gerar') return telaGerar();
+  if (h === '/pegar') return telaPegar();
+  var minha = minhaSenha();
+  if (minha) { location.replace('#/senha/' + pad(minha.n)); return; }
+  telaPegar();
+}
+window.addEventListener('hashchange', render);
+document.getElementById('foot').innerHTML = 'Sem nome nem telefone: a fila usa só o número da senha.<br><a href="#/dona">Sou a Leidi</a>';
+render();
+</script>
+</body>
+</html>
